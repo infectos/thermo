@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>My first Vue app</title>
+  <meta charset="utf-8" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/reset.css">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="https://unpkg.com/vue"></script>
+</head>
+
+<body>
+  <section class="content">
+    <div id="rawPoints">
+      <h2>Введите не менее 8 результатов испытаний</h2>
+      <span><input v-model.number="temperature" type="number" /> Температура,[°C]</span>
+      </br>
+      <span><input v-model.number="tension" type="number" /> Напряжение,[МПа]</span>
+      </br></br>
+      <ol>
+        <li v-for="(rawPoint, index) in rawPoints">
+          <input v-model.number="rawPoint.time" type="number" /> Время,[c] </br></br>
+        </li>
+      </ol>
+      <button v-on:click="addNewPoint">Добавить новую точку</button>
+      <button v-on:click="processPoints">Обработать данные</button>
+      <h2>Массив:{{this.processed.array}}</h2>
+      <h2>Среднее значение:{{this.processed.average}}</h2>
+      <h2>S:{{this.processed.s}}</h2>
+      <h2>G1:{{this.processed.g1}}</h2>
+      <h2>G2:{{this.processed.g2}}</h2>
+      <h2>Критерий Граббса:{{this.processed.grabbs}}</h2>
+    </div>
+    <div id="line">
+  
+    </div>
+  </section>
+  
+  <script>
+    var rawPoints = new Vue({
+      el: "#rawPoints",
+      data: {
+        rawPoints: [{"time":3},{"time":2},{"time":4},{"time":5},{"time":6},{"time":5},{"time":5},{"time":2}],
+        temperature: 50,
+        tension:6,
+        processed: {
+          array:0,
+          average: 0,
+          s:0,
+          g1:0,
+          g2:0,
+          grabbs:0,
+        }
+      },
+      methods: {
+        addNewPoint: function (event) {
+          this.rawPoints.push({"time":0});
+        },
+        processPoints: function (event) {
+          
+
+          let array = this.rawPoints.filter(item=>{return item.time}).map(item=>{return Number(item.time)});
+          
+          let deleteErrors = function (array) {
+            let grabbsTable1 = [null,null,null,1.155,1.496,1.764,1.973,2.139,2.274,2.387,2.482,2.564,2.636];
+            let grabbsTable5 = [null,null,null,1.155,1.481,1.715,1.887,2.02,2.126,2.215,2.290,2.355,2.412];
+
+            let average = array.reduce((a, b) => (a + b),0) / array.length;
+            
+            let upper = array.map(item=>{return Math.pow((item - average),2)});
+            let lower = array.length - 1;
+            let s = Math.sqrt((upper.reduce((a, b) => (a + b),0)/lower));
+
+            let max = Math.max(...array);
+            let min = Math.min(...array);
+            let g1 = Math.abs(max - average)/s;
+            let g2 = Math.abs(average - min)/s;
+
+            let grabbsCriterion = grabbsTable1[array.length];
+            return {'array':array,'average':average,'s':s,"g1":g1,'g2':g2,'grabbs':grabbsCriterion};
+          }
+          let processedObject = deleteErrors(array);
+      
+          while (processedObject.g1 > processedObject.grabbs || processedObject.g2 > processedObject.grabbs) {
+            if (processedObject.g1 > processedObject.grabbs) {
+              processedObject.array = processedObject.array.filter(item => item != Math.max(...processedObject.array));
+            } else {
+              processedObject.array = processedObject.array.filter(item => item != Math.min(...processedObject.array));
+            }
+            processedObject = deleteErrors(processedObject.array);
+          }
+          this.processed.array = processedObject.array;
+          this.processed.average = processedObject.average;
+          this.processed.s = processedObject.s;
+          this.processed.g1 = processedObject.g1;
+          this.processed.g2 = processedObject.g2;
+          this.processed.grabbs = processedObject.grabbs;
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
