@@ -1,21 +1,63 @@
-html{
+html {
+  font-size: 16px;
+}
+body {
   font-family: 'Roboto', sans-serif;
+  line-height: 1;
+  height: 100vh;
+  background-color: hsl(210, 29%, 97%);
+  color: hsl(208, 12%, 12%);
 }
 h2 {
   font-weight: bold;
+  line-height: 1;
 }
+
 section {
-  width: 100%;
   max-width: 1200px;
   margin: auto;
-  margin-top: 100px;
+  margin-top: 25px;
   display: flex;
+  width: 70%;
+  padding: 20px;
+  background-color: white;
+  border-radius:  20px ;
+  box-shadow: 0 1px 3px hsla(0, 0%, 20%);
 }
+
+.warning {
+  font-size: 20px;
+  font-weight: bold;
+  color: red;
+}
+
 #rawPoints {
   margin: auto;
   display: flex;
+  
   align-items: center;
   flex-direction: column;
+}
+#rawPoints ol {
+  background-color: hsl(60, 95%, 93%);
+  margin: 20px;
+  padding: 20px;
+  box-shadow: 0 1px 3px hsla(0, 0%, 20%);
+}
+.processControl {
+  display: flex;
+  flex-direction: column;
+  margin: 20px;
+  padding: 20px;
+  background-color: hsl(60, 95%, 93%);
+  box-shadow: 0 1px 3px hsla(0, 0%, 20%);
+  z-index: 100;
+}
+.results {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 #pointsList li {

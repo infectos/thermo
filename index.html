@@ -2,10 +2,10 @@
 <html>
 
 <head>
-  <title>My first Vue app</title>
+  <title>Термофлуктуационные константы</title>
   <meta charset="utf-8" />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/reset.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
   <script src="https://d3js.org/d3.v5.min.js"></script>
   <script src="./leastSquares.js"></script>
@@ -16,18 +16,31 @@
   <section class="content">
     <div id="rawPoints">
       <h2>Введите не менее 8 результатов испытаний</h2>
-      <span><input v-model.number="temperature" type="number" /> Температура,[°C]</span>
-      </br>
-      <span><input v-model.number="tension" type="number" /> Напряжение,[МПа]</span>
-      </br></br>
+      
+      
       <ol>
+        <span><input v-model.number="tension" type="number" /> Напряжение,[МПа]</span>
+        <br>
+        <hr />
         <li v-for="(rawPoint, index) in rawPoints">
           <input v-model.number="rawPoint.time" type="number" /> Время,[c] </br></br>
         </li>
+        <hr />
+        <button v-on:click="addNewPoint">Добавить новую точку</button>
       </ol>
-      <button v-on:click="addNewPoint">Добавить новую точку</button>
-      <button v-on:click="processPoints">Обработать данные</button>
-      <h2>Массив:{{this.processed.array}}</h2>
+      <div class="processControl">
+        <span>Выбранный уровень значимости q для критерия Граббса: <select v-model="selectGrabbs">
+          <option >Свыше 1%</option>
+          <option>Свыше 5%</option>
+        </select></span>
+        <span>Выбранная доверительная вероятность P для критерия Стьюдента: <select v-model="selectStudent">
+          <option >0.95</option>
+          <option>0.99</option>
+        </select></span>
+        <button v-on:click="processPoints">Обработать данные</button>
+      </div>
+      <div v-if="intervals != 0" class="results">
+      <h2>Массив десятичных логарифмов:{{this.processed.array}}</h2>
       <h2>Среднее значение:{{this.processed.average}}</h2>
       <h2>S:{{this.processed.s}}</h2>
       <h2>G1:{{this.processed.g1}}</h2>
@@ -40,12 +53,16 @@
       <h2>Sx:{{this.intervals.sx}}</h2>
       <h2>Дельта:{{this.intervals.delta}}</h2>
       <h2>Интервал:{{this.intervals.range}}</h2>
+      </br>
+      <h1 class="warning">{{message}}</h1>
+      </div>
     </div>
     <div id="pointsList">
+      <span v-if='pointsList.length > 0'><input  v-model.number="temperature" type="number" /> Температура,[°C]</span>
+      </br>
       <ol>
         <li v-for="(point, index) in pointsList">
-          <h2>{{point.average}} c (lg = {{point.log10}})</h2>
-          <h3>Температура: {{point.temperature}} °C </h3>
+          <h2>lg = {{point.average}}</h2>
           <h3>Напряжение: {{point.tension}} МПа</h3>
         </li>
       </ol>
@@ -79,10 +96,12 @@
         }, {
           "time": 1
         }],
-        temperature: 30,
         tension: 7.82,
         processed: 0,
         intervals: 0,
+        message:'',
+        selectGrabbs: "Свыше 1%",
+        selectStudent: "0.95",
       },
       methods: {
         addNewPoint: function (event) {
@@ -93,10 +112,13 @@
         processPoints: function (event) {
 
 
-          let array = this.rawPoints.filter(item => {
-            return item.time
+          let arraySec = this.rawPoints.filter(item => {
+            return item.time;
           }).map(item => {
-            return Number(item.time)
+            return item.time;
+          });
+          let arrayLog10 = arraySec.map(item => {
+            return Number(Math.log10(item).toFixed(2));
           });
 
           let deleteErrors = function (array) {
@@ -120,7 +142,12 @@
             let g1 = Math.abs(max - average) / s;
             let g2 = Math.abs(average - min) / s;
 
-            let grabbsCriterion = grabbsTable1[array.length];
+            let grabbsCriterion;
+            if (rawPoints.selectGrabbs == "Свыше 1%") {
+              grabbsCriterion = grabbsTable1[array.length];
+            } else {
+              grabbsCriterion = grabbsTable5[array.length];
+            }
             return {
               'array': array,
               'average': average,
@@ -130,7 +157,7 @@
               'grabbs': grabbsCriterion
             };
           }
-          let processedObject = deleteErrors(array);
+          let processedObject = deleteErrors(arrayLog10);
 
           while (processedObject.g1 > processedObject.grabbs || processedObject.g2 > processedObject.grabbs) {
             if (processedObject.g1 > processedObject.grabbs) {
@@ -153,10 +180,22 @@
             let s = Math.sqrt((upper.reduce((a, b) => (a + b), 0) / lower));
 
             let sx = s / Math.sqrt(givenArray.length);
-            let studentsTable5 = [null, null, null, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228,
+
+            let studentsTable95 = [null, null, null, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228,
               2.228, 2.179
             ];
-            let delta = sx * studentsTable5[lower];
+            let studentsTable99 = [null, null, null, 5.841, 4.604, 4.032, 3.707, 2.998, 3.355, 3.25, 3.169,
+              3.169, 3.055
+            ];
+            let studentsTable;
+            
+            if (rawPoints.selectStudent == "0.95") {
+              studentsTable = studentsTable95;
+            } else {
+              studentsTable = studentsTable99;
+            }
+
+            let delta = sx * studentsTable[lower];
             let range = String(average - delta) + '...' + String(average + delta);
             return {
               'array': givenArray,
@@ -171,23 +210,21 @@
 
           let newArray = processedObject.array.slice();
           let intervalObject = findIntervals(newArray);
-
-          while (intervalObject.array.some(e => {
+          this.message = "";
+          if (intervalObject.array.some(e => {
               return e < (intervalObject.average - intervalObject.delta)
             }) || intervalObject.array.some(e => {
               return e > (intervalObject.average + intervalObject.delta)
             })) {
-            let cut = intervalObject.upper.indexOf(Math.max(...intervalObject.upper));
-
-            intervalObject.array.splice(cut, 1);
-            intervalObject = findIntervals(intervalObject.array);
+              let cut = intervalObject.upper.indexOf(Math.max(...intervalObject.upper));
+              message = `Значение ${intervalObject.array[cut]} не лежит в доверительном интервале! Добавьте больше точек в выборку.`;
+              this.message = message;
+              this.intervals = intervalObject;
+          } else {
+              this.intervals = intervalObject;
+              intervalObject.tension = this.tension;
+              pointsList.pointsList.push(intervalObject);
           }
-          this.intervals = intervalObject;
-          intervalObject.temperature = this.temperature;
-          intervalObject.tension = this.tension;
-          intervalObject.log10 = Number(Math.log10(intervalObject.average).toFixed(2));
-          pointsList.pointsList.push(intervalObject);
-
 
         }
       }
@@ -204,6 +241,7 @@
                    // {'tension':6.2,'log10':3}
                     ],
         func: null,
+        temperature: 0,
       },
       methods: {
         getFunction: function (event) {
