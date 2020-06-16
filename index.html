@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/reset.css">
   <link rel="stylesheet" href="assets/style.css">
+  <script src="https://d3js.org/d3.v5.min.js"></script>
   <script src="./leastSquares.js"></script>
   <script src="https://unpkg.com/vue"></script>
 </head>
@@ -43,113 +44,308 @@
     <div id="pointsList">
       <ol>
         <li v-for="(point, index) in pointsList">
-          <h2>{{point.average}}</h2> 
+          <h2>{{point.average}} c (lg = {{point.log10}})</h2>
           <h3>Температура: {{point.temperature}} °C </h3>
           <h3>Напряжение: {{point.tension}} МПа</h3>
         </li>
       </ol>
       <button v-if='pointsList.length > 4' v-on:click="getFunction">Получить уравнение прямой</button>
       <br>
-      {{this.func}}
+      {{this.func}} <br>
+      <button v-if='pointsList.length > 4' v-on:click="drawGraph">Получить график</button>
     </div>
+    <div id="dataviz_axisZoom"></div>
   </section>
-  
+
+
   <script>
     var rawPoints = new Vue({
       el: "#rawPoints",
       data: {
-        rawPoints: [{"time":3},{"time":2},{"time":4},{"time":5},{"time":6},{"time":5},{"time":5},{"time":2}],
-        temperature: 50,
-        tension:6,
+        rawPoints: [{
+          "time": 3
+        }, {
+          "time": 4
+        }, {
+          "time": 42
+        }, {
+          "time": 1
+        }, {
+          "time": 1
+        }, {
+          "time": 2
+        }, {
+          "time": 2
+        }, {
+          "time": 1
+        }],
+        temperature: 30,
+        tension: 7.82,
         processed: 0,
-        intervals:0,
+        intervals: 0,
       },
       methods: {
         addNewPoint: function (event) {
-          this.rawPoints.push({"time":0});
+          this.rawPoints.push({
+            "time": 0
+          });
         },
         processPoints: function (event) {
-          
 
-          let array = this.rawPoints.filter(item=>{return item.time}).map(item=>{return Number(item.time)});
-          
+
+          let array = this.rawPoints.filter(item => {
+            return item.time
+          }).map(item => {
+            return Number(item.time)
+          });
+
           let deleteErrors = function (array) {
-            let grabbsTable1 = [null,null,null,1.155,1.496,1.764,1.973,2.139,2.274,2.387,2.482,2.564,2.636];
-            let grabbsTable5 = [null,null,null,1.155,1.481,1.715,1.887,2.02,2.126,2.215,2.290,2.355,2.412];
+            let grabbsTable1 = [null, null, null, 1.155, 1.496, 1.764, 1.973, 2.139, 2.274, 2.387, 2.482, 2.564,
+              2.636
+            ];
+            let grabbsTable5 = [null, null, null, 1.155, 1.481, 1.715, 1.887, 2.02, 2.126, 2.215, 2.290, 2.355,
+              2.412
+            ];
 
-            let average = array.reduce((a, b) => (a + b),0) / array.length;
-            
-            let upper = array.map(item=>{return Math.pow((item - average),2)});
+            let average = array.reduce((a, b) => (a + b), 0) / array.length;
+
+            let upper = array.map(item => {
+              return Math.pow((item - average), 2)
+            });
             let lower = array.length - 1;
-            let s = Math.sqrt((upper.reduce((a, b) => (a + b),0)/lower));
+            let s = Math.sqrt((upper.reduce((a, b) => (a + b), 0) / lower));
 
             let max = Math.max(...array);
             let min = Math.min(...array);
-            let g1 = Math.abs(max - average)/s;
-            let g2 = Math.abs(average - min)/s;
+            let g1 = Math.abs(max - average) / s;
+            let g2 = Math.abs(average - min) / s;
 
             let grabbsCriterion = grabbsTable1[array.length];
-            return {'array':array,'average':average,'s':s,"g1":g1,'g2':g2,'grabbs':grabbsCriterion};
+            return {
+              'array': array,
+              'average': average,
+              's': s,
+              "g1": g1,
+              'g2': g2,
+              'grabbs': grabbsCriterion
+            };
           }
           let processedObject = deleteErrors(array);
-      
+
           while (processedObject.g1 > processedObject.grabbs || processedObject.g2 > processedObject.grabbs) {
             if (processedObject.g1 > processedObject.grabbs) {
-              processedObject.array = processedObject.array.filter(item => item != Math.max(...processedObject.array));
+              processedObject.array = processedObject.array.filter(item => item != Math.max(...processedObject
+                .array));
             } else {
-              processedObject.array = processedObject.array.filter(item => item != Math.min(...processedObject.array));
+              processedObject.array = processedObject.array.filter(item => item != Math.min(...processedObject
+                .array));
             }
             processedObject = deleteErrors(processedObject.array);
           }
           this.processed = processedObject;
-          
+
           let findIntervals = function (givenArray) {
-            let average = givenArray.reduce((a, b) => (a + b),0) / givenArray.length;
-            let upper = givenArray.map(item=>{return Math.pow((item - average),2)});
+            let average = givenArray.reduce((a, b) => (a + b), 0) / givenArray.length;
+            let upper = givenArray.map(item => {
+              return Math.pow((item - average), 2)
+            });
             let lower = givenArray.length - 1;
-            let s = Math.sqrt((upper.reduce((a, b) => (a + b),0)/lower));
+            let s = Math.sqrt((upper.reduce((a, b) => (a + b), 0) / lower));
 
             let sx = s / Math.sqrt(givenArray.length);
-            let studentsTable5 = [null,null,null,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,2.228,2.179];
+            let studentsTable5 = [null, null, null, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228,
+              2.228, 2.179
+            ];
             let delta = sx * studentsTable5[lower];
             let range = String(average - delta) + '...' + String(average + delta);
-            return {'array':givenArray,'average':average,'s':s,"sx":sx,'delta':delta,'range':range,'upper':upper};
+            return {
+              'array': givenArray,
+              'average': average,
+              's': s,
+              "sx": sx,
+              'delta': delta,
+              'range': range,
+              'upper': upper
+            };
           }
-          
-          let newArray =  processedObject.array.slice();
+
+          let newArray = processedObject.array.slice();
           let intervalObject = findIntervals(newArray);
-          
-          while ( intervalObject.array.some(e=>{return e < (intervalObject.average - intervalObject.delta) }) || intervalObject.array.some(e=>{return e > (intervalObject.average + intervalObject.delta) }) ) {
+
+          while (intervalObject.array.some(e => {
+              return e < (intervalObject.average - intervalObject.delta)
+            }) || intervalObject.array.some(e => {
+              return e > (intervalObject.average + intervalObject.delta)
+            })) {
             let cut = intervalObject.upper.indexOf(Math.max(...intervalObject.upper));
-            
-            intervalObject.array.splice(cut,1);
+
+            intervalObject.array.splice(cut, 1);
             intervalObject = findIntervals(intervalObject.array);
           }
           this.intervals = intervalObject;
           intervalObject.temperature = this.temperature;
           intervalObject.tension = this.tension;
+          intervalObject.log10 = Number(Math.log10(intervalObject.average).toFixed(2));
           pointsList.pointsList.push(intervalObject);
-          
+
 
         }
       }
     });
-    
+
     var pointsList = new Vue({
       el: '#pointsList',
       data: {
-        pointsList: [],
+        pointsList: [
+                   // {'tension':7.82,'log10':0.15},
+                   // {'tension':7.4,'log10':0.3},
+                   // {'tension':7,'log10':0.76},
+                   // {'tension':6.6,'log10':0.86},
+                   // {'tension':6.2,'log10':3}
+                    ],
         func: null,
       },
       methods: {
         getFunction: function (event) {
-          let tensions = this.pointsList.map(d=>Number(d.tension));
-          let times = this.pointsList.map(d=>Number(d.average));
-          let func = LeastSquares(tensions,times);
+          let tensions = this.pointsList.map(d => Number(d.tension));
+          let times = this.pointsList.map(d => Number(d.log10));
+          let func = LeastSquares(tensions, times);
           this.func = func;
+        },
+        drawGraph: function (event) {
+          drawGraph(this.pointsList);
         }
       }
-    })
+    });
+
+
+    let drawGraph = function (dataArray) {
+
+      let margin = {
+        top: 10,
+        right: 30,
+        bottom: 30,
+        left: 60
+      }; // отступ
+      let width = 460 - margin.left - margin.right; // длина оси Y
+      let height = 460 - margin.top - margin.bottom; // длина оси X
+
+
+      let svg = d3.select('#dataviz_axisZoom')
+        .append('svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr("transform",
+          `translate(${margin.left},${margin.top})`);
+
+
+
+      let scaleX = d3.scaleLinear().domain([4, 8]).range([0, width]);
+      let xAxis = svg.append('g')
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(scaleX));
+
+      let scaleY = d3.scaleLinear().domain([0, 9]).range([height, 0]);
+      let yAxis = svg.append('g').call(d3.axisLeft(scaleY));
+
+      //Add a clipPath: everything out of this area will not be drawn
+      let clip = svg.append('defs').append('SVG:clipPath')
+        .attr('id', 'clip')
+        .append('SVG:rect')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('x', 0)
+        .attr('y', 0)
+
+
+      // Create the scatter variable: where both the circles and the brush take place
+      let scatter = svg.append('g')
+        .attr('clip-path', 'url(#clip)')
+
+
+      // add circles
+      scatter
+        .selectAll('circle')
+        .data(dataArray)
+        .enter()
+        .append('circle')
+        .attr('cx', d => scaleX(d.tension))
+        .attr('cy', d => scaleY(d.log10))
+        .attr('r', 9)
+        .style('fill', '#61a3a9')
+        .style('opacity', 0.5);
+
+
+      let func = LeastSquares(dataArray.map(d => d.tension), dataArray.map(d => d.log10));
+
+      let tooltip = d3.select("body")
+        .append("div")
+        .style("position", "absolute")
+        .style("z-index", "10")
+        .style("visibility", "hidden")
+        .text("a simple tooltip");
+
+      let line = scatter.append('g')
+        .attr('class', 'lines')
+        .append('line')
+        .attr('id', 'circleBasicTooltip')
+        .attr('stroke', 'black')
+        .attr('stroke-width', 2)
+        .attr("x1", scaleX(0))
+        .attr("y1", scaleY(func.calculate(0)))
+        .attr("x2", scaleX(d3.max(dataArray, d => d.tension)))
+        .attr("y2", scaleY(func.calculate(d3.max(dataArray, d => d.tension))))
+        .on("mouseover", function () {
+          return tooltip.style("visibility", "visible").text(func.toString());
+        })
+        .on("mousemove", function () {
+          return tooltip.style("top", (event.pageY - 10) + "px").style("left", (event.pageX + 10) + "px");
+        })
+        .on("mouseout", function () {
+          return tooltip.style("visibility", "hidden");
+        });
+
+      // Set zoom and pan
+      let zoom = d3.zoom()
+        .scaleExtent([.5, 20])
+        .extent([
+          [0, 0],
+          [width, height]
+        ])
+        .on('zoom', updateChart);
+
+      // This add an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
+      svg.append("rect")
+        .attr('width', width)
+        .attr('height', height)
+        .style('fill', 'none')
+        .style('pointer-events', 'all')
+        .lower();
+      svg.call(zoom);
+
+      function updateChart() {
+        //gets new scales
+        let newX = d3.event.transform.rescaleX(scaleX)
+        let newY = d3.event.transform.rescaleY(scaleY)
+
+        //refreshes axis
+        xAxis.call(d3.axisBottom(newX));
+        yAxis.call(d3.axisLeft(newY));
+
+        //update circle pos
+        scatter
+          .selectAll('circle')
+          .attr('cx', d => newX(d.tension))
+          .attr('cy', d => newY(d.log10))
+        line
+          .attr("x1", newX(0))
+          .attr("y1", newY(func.calculate(0)))
+          .attr("x2", newX(d3.max(dataArray, d => d.tension)))
+          .attr("y2", newY(func.calculate(d3.max(dataArray, d => d.tension))))
+      }
+    }
+    
   </script>
 </body>
 
