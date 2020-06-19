@@ -14,11 +14,11 @@ h2 {
 }
 
 section {
-  max-width: 1200px;
+  max-width: 1300px;
   margin: auto;
   margin-top: 25px;
   display: flex;
-  width: 70%;
+  width: 100%;
   padding: 20px;
   background-color: white;
   border-radius:  20px ;

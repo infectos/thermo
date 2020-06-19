@@ -76,11 +76,13 @@
           <button v-on:click="removePoint(index)">X</button>
         </li>
       </ol>
-      <span v-if='pointsList.length > 0'><input  v-model.number="temperature" type="number" /> Температура,[°C]</span>
+      <span v-if='pointsList.length > 0'><input  v-model.number="temperature" type="number" /> Температура T,[°C]</span>
+      <span v-if='pointsList.length > 0'><input  v-model.number="maxTemperature" type="number" /> Температура существования Tm,[°C]</span>
       </br>
-      <button v-if='pointsList.length > 4' v-on:click="getFunction">Получить уравнение прямой</button>
+      <button v-if='pointsList.length > 4' v-on:click="getFunction();getCoefficients()">Получить уравнение прямой</button>
       <br>
       {{this.func}} <br>
+      {{this.coefficients}} <br>
       <button v-if='pointsList.length > 4' v-on:click="drawGraph">Получить график</button>
     </div>
     <div id="dataviz_axisZoom"></div>
@@ -277,14 +279,16 @@
       el: '#pointsList',
       data: {
         pointsList: [
-                   // {'tension':7.82,'log10':0.15},
-                   // {'tension':7.4,'log10':0.3},
-                   // {'tension':7,'log10':0.76},
-                   // {'tension':6.6,'log10':0.86},
-                   // {'tension':6.2,'log10':3}
+                   {'tension':7.82,'average':0.15},
+                   {'tension':7.4,'average':0.3},
+                   {'tension':7,'average':0.76},
+                   {'tension':6.6,'average':0.86},
+                   {'tension':6.2,'average':3}
                     ],
         func: null,
-        temperature: 0,
+        temperature: null,
+        maxTemperature: null,
+        coefficients: null,
       },
       methods: {
         getFunction: function (event) {
@@ -299,6 +303,18 @@
         removePoint: function (index) {
           this.pointsList.splice(index,1);
         },
+        getCoefficients: function (event) {
+          let c = this.func.m / (this.temperature - this.maxTemperature);
+          let d = (-this.maxTemperature * this.func.m) / (this.temperature - this.maxTemperature);
+          let k = this.func.b / (this.temperature - this.maxTemperature);
+          let mu = (-this.maxTemperature * this.func.b) / (this.temperature - this.maxTemperature);
+          this.coefficients = {
+            'c': c,
+            'd': d,
+            'k': k,
+            'mu': mu,
+          };
+        }
       }
     });
 
